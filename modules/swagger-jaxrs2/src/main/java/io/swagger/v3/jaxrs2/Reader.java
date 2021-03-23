@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.BeanDescription;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.introspect.AnnotatedMethod;
 import com.fasterxml.jackson.databind.introspect.AnnotatedParameter;
+import com.fasterxml.jackson.databind.type.SimpleType;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 import io.swagger.v3.core.converter.AnnotatedType;
 import io.swagger.v3.core.converter.ModelConverters;
@@ -78,6 +79,8 @@ public class Reader implements OpenApiReader {
     public static final String DEFAULT_DESCRIPTION = "default response";
 
     protected OpenAPIConfiguration config;
+
+    protected ReaderConfiguration readerConfig;
 
     private Application application;
     private OpenAPI openAPI;
@@ -442,18 +445,18 @@ public class Reader implements OpenApiReader {
                     /* If one and only one exists, use the @JsonView annotation from the method parameter annotated
                        with @RequestBody. Otherwise fall back to the @JsonView annotation for the method itself. */
                     jsonViewAnnotationForRequestBody = (JsonView) Arrays.stream(ReflectionUtils.getParameterAnnotations(method))
-                        .filter(arr ->
-                            Arrays.stream(arr)
-                                .anyMatch(annotation ->
+                            .filter(arr ->
+                                    Arrays.stream(arr)
+                                            .anyMatch(annotation ->
+                                                    annotation.annotationType()
+                                                            .equals(io.swagger.v3.oas.annotations.parameters.RequestBody.class)
+                                            )
+                            ).flatMap(Arrays::stream)
+                            .filter(annotation ->
                                     annotation.annotationType()
-                                        .equals(io.swagger.v3.oas.annotations.parameters.RequestBody.class)
-                                )
-                        ).flatMap(Arrays::stream)
-                        .filter(annotation ->
-                            annotation.annotationType()
-                                .equals(JsonView.class)
-                        ).reduce((a, b) -> null)
-                        .orElse(jsonViewAnnotation);
+                                            .equals(JsonView.class)
+                            ).reduce((a, b) -> null)
+                            .orElse(jsonViewAnnotation);
                 }
 
                 Operation operation = parseMethod(
@@ -493,6 +496,12 @@ public class Reader implements OpenApiReader {
                             } else {
                                 if (!(paramType instanceof Class)) {
                                     paramType = type;
+                                }
+                            }
+
+                            if (readerConfig != null && paramType instanceof SimpleType) {
+                                if (!readerConfig.getIgnoreParamTypes().contains(((SimpleType) paramType).getRawClass())) {
+                                    continue;
                                 }
                             }
                             ResolvedParameter resolvedParameter = getParameters(paramType, Arrays.asList(paramAnnotations[i]), operation, classConsumes, methodConsumes, jsonViewAnnotation);
@@ -547,13 +556,13 @@ public class Reader implements OpenApiReader {
                     if (!formParameters.isEmpty()) {
                         Schema mergedSchema = new ObjectSchema();
                         Map<String, Encoding> encoding = new LinkedHashMap<>();
-                        for (Parameter formParam: formParameters) {
+                        for (Parameter formParam : formParameters) {
                             if (formParam.getExplode() != null || (formParam.getStyle() != null) && Encoding.StyleEnum.fromString(formParam.getStyle().toString()) != null) {
                                 Encoding e = new Encoding();
                                 if (formParam.getExplode() != null) {
                                     e.explode(formParam.getExplode());
                                 }
-                                if (formParam.getStyle() != null  && Encoding.StyleEnum.fromString(formParam.getStyle().toString()) != null) {
+                                if (formParam.getStyle() != null && Encoding.StyleEnum.fromString(formParam.getStyle().toString()) != null) {
                                     e.style(Encoding.StyleEnum.fromString(formParam.getStyle().toString()));
                                 }
                                 encoding.put(formParam.getName(), e);
@@ -752,7 +761,7 @@ public class Reader implements OpenApiReader {
                 operation.getRequestBody().getContent() != null &&
                 encoding != null && !encoding.isEmpty()) {
             Content content = operation.getRequestBody().getContent();
-            for (String mediaKey: content.keySet()) {
+            for (String mediaKey : content.keySet()) {
                 if (mediaKey.equals(javax.ws.rs.core.MediaType.APPLICATION_FORM_URLENCODED) ||
                         mediaKey.equals(javax.ws.rs.core.MediaType.MULTIPART_FORM_DATA)) {
                     MediaType m = content.get(mediaKey);
@@ -974,7 +983,7 @@ public class Reader implements OpenApiReader {
         }
 
         // RequestBody in Method
-        if (apiRequestBody != null && operation.getRequestBody() == null){
+        if (apiRequestBody != null && operation.getRequestBody() == null) {
             OperationParser.getRequestBody(apiRequestBody, classConsumes, methodConsumes, components, jsonViewAnnotation).ifPresent(
                     operation::setRequestBody);
         }
@@ -1043,8 +1052,8 @@ public class Reader implements OpenApiReader {
                 if (content == null) {
                     content = parentRequestBody.getContent();
                     operation.getRequestBody().setContent(content);
-                } else if (parentRequestBody.getContent() != null){
-                    for (String parentMediaType: parentRequestBody.getContent().keySet()) {
+                } else if (parentRequestBody.getContent() != null) {
+                    for (String parentMediaType : parentRequestBody.getContent().keySet()) {
                         if (content.get(parentMediaType) == null) {
                             content.addMediaType(parentMediaType, parentRequestBody.getContent().get(parentMediaType));
                         }
@@ -1117,7 +1126,7 @@ public class Reader implements OpenApiReader {
         String rawClassName = className;
         if (rawClassName.startsWith("[")) { // jackson JavaType
             rawClassName = className.replace("[simple type, class ", "");
-            rawClassName = rawClassName.substring(0, rawClassName.length() -1);
+            rawClassName = rawClassName.substring(0, rawClassName.length() - 1);
         }
         ignore = rawClassName.startsWith("javax.ws.rs.");
         ignore = ignore || rawClassName.equalsIgnoreCase("void");
@@ -1217,9 +1226,9 @@ public class Reader implements OpenApiReader {
         }
 
         ReaderUtils.getStringListFromStringArray(apiOperation.tags()).ifPresent(tags ->
-            tags.stream()
-                    .filter(t -> operation.getTags() == null || (operation.getTags() != null && !operation.getTags().contains(t)))
-                    .forEach(operation::addTagsItem));
+                tags.stream()
+                        .filter(t -> operation.getTags() == null || (operation.getTags() != null && !operation.getTags().contains(t)))
+                        .forEach(operation::addTagsItem));
 
         if (operation.getExternalDocs() == null) { // if not set in root annotation
             AnnotationsUtils.getExternalDocumentation(apiOperation.externalDocs()).ifPresent(operation::setExternalDocs);
