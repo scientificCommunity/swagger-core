@@ -113,7 +113,7 @@
                 <configuration>
                     <attach>false</attach>
                     <classifier>jakarta</classifier>
-                    <outputDirectory>${project.basedir}/../swagger-project-jakarta/modules/${project.artifactId}-jakarta/transformed</outputDirectory>
+                    <outputDirectory>${project.basedir}/../swagger-project-jakarta/modules/swagger-jaxrs2-jakarta/transformed</outputDirectory>
                 </configuration>
                 <executions>
                     <execution>

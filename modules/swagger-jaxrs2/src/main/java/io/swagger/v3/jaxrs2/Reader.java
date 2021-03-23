@@ -1519,4 +1519,8 @@ public class Reader implements OpenApiReader {
             return val;
         }
     }
+
+    public void setReaderConfig(ReaderConfiguration readerConfig) {
+        this.readerConfig = readerConfig;
+    }
 }
