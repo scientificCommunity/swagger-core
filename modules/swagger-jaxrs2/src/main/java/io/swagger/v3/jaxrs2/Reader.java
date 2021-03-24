@@ -21,6 +21,7 @@ import io.swagger.v3.jaxrs2.util.ReaderUtils;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.servers.Server;
 import io.swagger.v3.oas.integration.ContextUtils;
 import io.swagger.v3.oas.integration.SwaggerConfiguration;
@@ -486,6 +487,7 @@ public class Reader implements OpenApiReader {
                     List<Parameter> operationParameters = new ArrayList<>();
                     List<Parameter> formParameters = new ArrayList<>();
                     Annotation[][] paramAnnotations = ReflectionUtils.getParameterAnnotations(method);
+                    java.lang.reflect.Parameter[] parameters = method.getParameters();
 
                     //make requestBody null if the method is annotated by {@link javax.ws.rs.GET}
                     boolean isGetMethod = false;
@@ -511,6 +513,17 @@ public class Reader implements OpenApiReader {
                                     continue;
                                 }
                             }
+
+                            if (isGetMethod && paramAnnotations[i].length == 0){
+                                String name = parameters[i].getName();
+                                Parameter parameter = new Parameter();
+                                parameter.setName(name);
+                                parameter.setIn(ParameterIn.QUERY.name());
+                                parameter.setRequired(false);
+                                Schema<String> stringSchema = new Schema<>();
+                                stringSchema.type("string");
+                                parameter.setSchema(stringSchema);
+                            }
                             ResolvedParameter resolvedParameter = getParameters(paramType, Arrays.asList(paramAnnotations[i]), operation, classConsumes, methodConsumes, jsonViewAnnotation);
                             //for vertx validator
                             //if required is null , set it to false
@@ -524,7 +537,7 @@ public class Reader implements OpenApiReader {
                             operationParameters.addAll(resolvedParameter.parameters);
                             // collect params to use together as request Body
                             formParameters.addAll(resolvedParameter.formParameters);
-                            if (resolvedParameter.requestBody != null && !isGetMethod) {
+                            if (resolvedParameter.requestBody != null) {
                                 processRequestBody(
                                         resolvedParameter.requestBody,
                                         operation,
@@ -570,7 +583,7 @@ public class Reader implements OpenApiReader {
                             operationParameters.addAll(resolvedParameter.parameters);
                             // collect params to use together as request Body
                             formParameters.addAll(resolvedParameter.formParameters);
-                            if (resolvedParameter.requestBody != null && !isGetMethod) {
+                            if (resolvedParameter.requestBody != null) {
                                 processRequestBody(
                                         resolvedParameter.requestBody,
                                         operation,
