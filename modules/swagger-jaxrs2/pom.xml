@@ -9,10 +9,11 @@
         <relativePath>../../</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-    <artifactId>swagger-jaxrs2</artifactId>
+    <artifactId>mampod-swagger-jaxrs2</artifactId>
     <packaging>bundle</packaging>
     <name>swagger-jaxrs2</name>
     <description>swagger-jaxrs2</description>
+    <version>2.1.6</version>
     <build>
         <sourceDirectory>src/main/java</sourceDirectory>
         <defaultGoal>install</defaultGoal>
@@ -158,17 +159,17 @@
         <dependency>
             <groupId>io.swagger.core.v3</groupId>
             <artifactId>swagger-models</artifactId>
-            <version>${project.version}</version>
+            <version>${project.parent.version}</version>
         </dependency>
         <dependency>
             <groupId>io.swagger.core.v3</groupId>
             <artifactId>swagger-annotations</artifactId>
-            <version>${project.version}</version>
+            <version>${project.parent.version}</version>
         </dependency>
         <dependency>
             <groupId>io.swagger.core.v3</groupId>
             <artifactId>swagger-integration</artifactId>
-            <version>${project.version}</version>
+            <version>${project.parent.version}</version>
         </dependency>
         <dependency>
             <groupId>org.testng</groupId>
