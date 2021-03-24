@@ -50,6 +50,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Application;
 import java.lang.annotation.Annotation;
@@ -485,6 +486,12 @@ public class Reader implements OpenApiReader {
                     List<Parameter> operationParameters = new ArrayList<>();
                     List<Parameter> formParameters = new ArrayList<>();
                     Annotation[][] paramAnnotations = ReflectionUtils.getParameterAnnotations(method);
+
+                    //make requestBody null if the method is annotated by {@link javax.ws.rs.GET}
+                    boolean isGetMethod = false;
+                    if (ReflectionUtils.getAnnotation(method, GET.class) != null) {
+                        isGetMethod = true;
+                    }
                     if (annotatedMethod == null) { // annotatedMethod not null only when method with 0-2 parameters
                         Type[] genericParameterTypes = method.getGenericParameterTypes();
                         for (int i = 0; i < genericParameterTypes.length; i++) {
@@ -517,7 +524,7 @@ public class Reader implements OpenApiReader {
                             operationParameters.addAll(resolvedParameter.parameters);
                             // collect params to use together as request Body
                             formParameters.addAll(resolvedParameter.formParameters);
-                            if (resolvedParameter.requestBody != null) {
+                            if (resolvedParameter.requestBody != null && !isGetMethod) {
                                 processRequestBody(
                                         resolvedParameter.requestBody,
                                         operation,
@@ -563,7 +570,7 @@ public class Reader implements OpenApiReader {
                             operationParameters.addAll(resolvedParameter.parameters);
                             // collect params to use together as request Body
                             formParameters.addAll(resolvedParameter.formParameters);
-                            if (resolvedParameter.requestBody != null) {
+                            if (resolvedParameter.requestBody != null && !isGetMethod) {
                                 processRequestBody(
                                         resolvedParameter.requestBody,
                                         operation,
